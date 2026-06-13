@@ -137,7 +137,22 @@ Airflow UI에서 다음 DAG을 unpause:
 ```bash
 cd api
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+PYTHONPATH=. uvicorn app.main:app --reload --port 8000
+```
+
+실행 점검(모듈 충돌 확인):
+
+```bash
+cd api
+../.venv/bin/python3 -c "import app; print(app.__file__)"
+```
+
+기준: 출력 값이 `/api/app/__init__.py` 이어야 합니다.
+
+진행 상황 추적이 필요한 경우:
+
+```bash
+open docs/progress.html
 ```
 
 ### 6. RAG 쿼리 테스트

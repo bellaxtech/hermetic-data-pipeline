@@ -30,13 +30,15 @@ async def init_pool() -> None:
         logger.warning("pgvector pool already initialised – closing first")
         await _pool.close()
 
+    async def _init_pgvector(conn: asyncpg.Connection) -> None:
+        await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+
     _pool = await asyncpg.create_pool(
         dsn=settings.postgres_dsn_str,
         min_size=settings.postgres_pool_min_size,
         max_size=settings.postgres_pool_max_size,
         command_timeout=30,
-        # Register the pgvector type codec automatically
-        init="CREATE EXTENSION IF NOT EXISTS vector",
+        init=_init_pgvector,
     )
     logger.info(
         "pgvector pool initialised (min=%d, max=%d)",
