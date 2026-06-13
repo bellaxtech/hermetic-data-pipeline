@@ -1,0 +1,106 @@
+{
+    "description": "Airflow connection definitions for the hermetic data pipeline",
+    "version": "1.0",
+    "connections": [
+        {
+            "conn_id": "spark_default",
+            "conn_type": "spark",
+            "host": "spark://spark-master",
+            "port": 7077,
+            "extra": {
+                "deploy-mode": "cluster",
+                "spark-home": "/opt/spark",
+                "java-home": "/usr/lib/jvm/java-11"
+            }
+        },
+        {
+            "conn_id": "postgres_source",
+            "conn_type": "postgres",
+            "host": "postgres-primary.corp.example.com",
+            "port": 5432,
+            "schema": "source_db",
+            "login": "pipeline_user",
+            "password": "${POSTGRES_PASSWORD}",
+            "extra": {
+                "sslmode": "require",
+                "connect_timeout": "10",
+                "application_name": "hermetic_pipeline"
+            }
+        },
+        {
+            "conn_id": "hive_metastore_default",
+            "conn_type": "hive_metastore",
+            "host": "hive-metastore.corp.example.com",
+            "port": 9083,
+            "extra": {
+                "auth": "kerberos",
+                "kerberos_principal": "hive/_HOST@CORP.EXAMPLE.COM",
+                "kerberos_keytab": "/etc/security/hive.keytab"
+            }
+        },
+        {
+            "conn_id": "s3_data_lake",
+            "conn_type": "aws",
+            "extra": {
+                "aws_access_key_id": "${AWS_ACCESS_KEY_ID}",
+                "aws_secret_access_key": "${AWS_SECRET_ACCESS_KEY}",
+                "region_name": "us-east-1",
+                "endpoint_url": "https://s3.corp.example.com",
+                "verify": false
+            }
+        },
+        {
+            "conn_id": "http_internal_api",
+            "conn_type": "http",
+            "host": "https://api.internal.corp.example.com",
+            "port": 443,
+            "extra": {
+                "timeout": 30,
+                "verify_ssl": false,
+                "headers": {
+                    "Accept": "application/json",
+                    "User-Agent": "Airflow-Pipeline/1.0",
+                    "X-Api-Key": "${INTERNAL_API_KEY}"
+                }
+            }
+        },
+        {
+            "conn_id": "slack_notifications",
+            "conn_type": "slack",
+            "host": "https://hooks.slack.com",
+            "password": "${SLACK_WEBHOOK_URL}",
+            "extra": {
+                "channel": "#data-pipeline-alerts",
+                "username": "PipelineBot",
+                "icon_emoji": ":robot_face:"
+            }
+        },
+        {
+            "conn_id": "redis_result_backend",
+            "conn_type": "redis",
+            "host": "redis-cluster.corp.example.com",
+            "port": 6379,
+            "extra": {
+                "db": 0,
+                "ssl": true,
+                "ssl_cert_reqs": "CERT_NONE"
+            }
+        },
+        {
+            "conn_id": "minio_s3_compat",
+            "conn_type": "aws",
+            "extra": {
+                "aws_access_key_id": "minioadmin",
+                "aws_secret_access_key": "minioadmin",
+                "endpoint_url": "http://minio:9000",
+                "region_name": "us-east-1",
+                "verify": false
+            }
+        }
+    ],
+    "$schema": "https://airflow.apache.org/schemas/connections.json",
+    "_notes": {
+        "password_macros": "Use ${VARIABLE_NAME} for values that should be resolved from Airflow Variables or environment",
+        "sensitive": "The connections file itself should be encrypted or restricted to Airflow configuration management"
+    }
+}

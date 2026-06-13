@@ -1,0 +1,104 @@
+version: '3.8'
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.8.1-python3.10
+  environment:
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
+    - AIRFLOW__CORE__LOAD_EXAMPLES=False
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./airflow-logs:/opt/airflow/logs
+    - ./airflow-plugins:/opt/airflow/plugins
+    - ./shared-storage:/opt/airflow/shared
+  user: "${AIRFLOW_UID:-5000}:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+  # 1. 메타데이터 및 메인 저장소 (PostgreSQL)
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Airflow 스케줄러
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: always
+
+  # 3. Airflow 웹서버 (UI 대시보드: Port 8080)
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    restart: always
+
+  # 4. Airflow DB 초기화용
+  airflow-init:
+    <<: *airflow-common
+    command: version
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    _AIRFLOW_DB_UPGRADE: "true"
+    _AIRFLOW_WWW_USER_CREATE: "true"
+    _AIRFLOW_WWW_USER_USERNAME: airflow
+    _AIRFLOW_WWW_USER_PASSWORD: airflow
+
+  # 5. Apache Spark Master (연산 컨트롤러: UI Port 8081)
+  spark-master:
+    image: bde2020/spark-master:3.3.0-hadoop3.3
+    container_name: spark-master
+    ports:
+      - "8081:8081"
+      - "7077:7077"
+    volumes:
+      - ./spark/jobs:/app/jobs
+      - ./shared-storage:/app/shared
+    environment:
+      - SPARK_DAEMON_MEMORY=1g
+
+  # 6. Apache Spark Worker (실제 연산 처리기)
+  spark-worker:
+    image: bde2020/spark-worker:3.3.0-hadoop3.3
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./spark/jobs:/app/jobs
+      - ./shared-storage:/app/shared
+    environment:
+      - "SPARK_MASTER=spark://spark-master:7077"
+      - SPARK_WORKER_MEMORY=1g
+
+  # 7. Hive Metastore (Iceberg 메타데이터 관리 포트: 9083)
+  hive-metastore:
+    image: rcarmo/hive-metastore:3.1.2
+    container_name: hive-metastore
+    ports:
+      - "9083:9083"
+    environment:
+      - METASTORE_TYPE=postgres
+      - METASTORE_DB_URL=jdbc:postgresql://postgres:5432/airflow
+      - METASTORE_DB_USER=airflow
+      - METASTORE_DB_PASS=airflow
+    depends_on:
+      - postgres

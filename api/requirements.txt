@@ -1,0 +1,19 @@
+# ── Core framework ────────────────────────────────────────────────────────────
+fastapi>=0.115.0,<1.0.0
+uvicorn[standard]>=0.32.0,<1.0.0
+pydantic>=2.9.0,<3.0.0
+pydantic-settings>=2.5.0,<3.0.0
+
+# ── Database / vector store ──────────────────────────────────────────────────
+asyncpg>=0.30.0,<1.0.0
+
+# ── LLM orchestration ────────────────────────────────────────────────────────
+langchain-core>=0.3.0,<1.0.0
+httpx>=0.28.0,<1.0.0
+
+# ── Server-sent events / streaming helpers ───────────────────────────────────
+sse-starlette>=2.1.0,<3.0.0
+
+# ── Development / linting (optional, include for convenience) ────────────────
+# mypy>=1.12.0
+# ruff>=0.7.0

@@ -1,0 +1,122 @@
+[project]
+name = "hermetic-data-pipeline"
+version = "0.1.0"
+description = "A hermetic data pipeline with Iceberg, Airflow, Spark, and vector query capabilities"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Bella", email = "bellaxtech@gmail.com" },
+]
+keywords = ["data-pipeline", "iceberg", "airflow", "spark", "etl", "vector-db"]
+
+dependencies = [
+    "pyspark>=3.4.0",
+    "apache-airflow>=2.8.0",
+    "fastapi>=0.104.0",
+    "langchain>=0.1.0",
+    "httpx>=0.25.0",
+    "scrapy>=2.10.0",
+    "pydantic>=2.0.0",
+    "psycopg2-binary>=2.9.0",
+    "pandas>=2.0.0",
+    "pyarrow>=14.0.0",
+    "requests>=2.31.0",
+    "sqlalchemy>=2.0.0",
+    "psutil>=5.9.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+    "ipython>=8.17.0",
+    "ipdb>=0.13.0",
+]
+spark = [
+    "pyspark>=3.4.0",
+    "pyiceberg>=0.5.0",
+]
+airflow = [
+    "apache-airflow>=2.8.0",
+    "apache-airflow-providers-apache-spark>=4.0.0",
+    "apache-airflow-providers-postgres>=5.0.0",
+    "apache-airflow-providers-slack>=8.0.0",
+]
+ingestion = [
+    "httpx>=0.25.0",
+    "scrapy>=2.10.0",
+    "aiofiles>=23.2.0",
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.25.0",
+]
+
+[project.urls]
+homepage = "https://github.com/bellaxtech/hermetic-data-pipeline"
+repository = "https://github.com/bellaxtech/hermetic-data-pipeline"
+documentation = "https://github.com/bellaxtech/hermetic-data-pipeline/wiki"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "dags*",
+    "spark*",
+    "ingestion*",
+    "scripts*",
+    "deploy*",
+    "config*",
+    "tests*",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.4"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*", "assert_*"]
+addopts = [
+    "-v",
+    "--strict-config",
+    "--strict-markers",
+    "--tb=short",
+    "--log-cli-level=INFO",
+]
+markers = [
+    "integration: marks tests as integration tests",
+    "spark: marks tests that require pyspark",
+    "slow: marks tests as slow (>10s)",
+    "asyncio: marks tests as async",
+]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "N"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[build-system]
+requires = ["setuptools>=68.0.0"]
+build-backend = "setuptools.build_meta"
