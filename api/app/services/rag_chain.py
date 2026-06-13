@@ -12,8 +12,8 @@ import logging
 from typing import AsyncGenerator
 
 import httpx
-from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
-from langchain.schema import BaseMessage
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate
+from langchain_core.messages import BaseMessage
 
 from app.core.config import settings
 from app.models.schemas import DocumentChunk

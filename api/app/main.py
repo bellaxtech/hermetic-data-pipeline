@@ -36,16 +36,26 @@ async def lifespan(app: FastAPI):
     )
 
     # Initialise pgvector pool and ensure schema + index exist
-    await vector_store.init_pool()
-    await vector_store.ensure_schema()
-    await vector_store.ensure_index()
+    try:
+        await vector_store.init_pool()
+        await vector_store.ensure_schema()
+        await vector_store.ensure_index()
+        logger.info("pgvector pool initialised")
+    except Exception as exc:
+        logger.warning(
+            "pgvector unavailable — server running in degraded mode: %s",
+            exc,
+        )
 
     logger.info("Application ready")
     yield
 
     # ── Shutdown ─────────────────────────────────────────────────────────
     logger.info("Shutting down …")
-    await vector_store.close_pool()
+    try:
+        await vector_store.close_pool()
+    except Exception:
+        pass
     logger.info("Goodbye.")
 
 
