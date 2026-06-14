@@ -125,3 +125,6 @@ desktop.ini
 /scratch/
 *.bak
 *.tmp
+
+airflow-logs/
+postgres-data/

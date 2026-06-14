@@ -43,11 +43,11 @@ def create_spark_session() -> SparkSession:
     spark = (
         SparkSession.builder.appName("IcebergTimeTravel")
         .config("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkSessionCatalog")
-        .config("spark.sql.catalog.spark_catalog.type", "hive")
+        .config("spark.sql.catalog.spark_catalog.type", "hadoop")
         .config("spark.sql.catalog.spark_catalog.warehouse", "file:///tmp/iceberg_warehouse")
         .config("spark.sql.catalog.spark_catalog.cache-enabled", "false")
         .config(f"spark.sql.catalog.{CATALOG_NAME}", "org.apache.iceberg.spark.SparkCatalog")
-        .config(f"spark.sql.catalog.{CATALOG_NAME}.type", "hive")
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.type", "hadoop")
         .config(f"spark.sql.catalog.{CATALOG_NAME}.warehouse", "file:///tmp/iceberg_warehouse")
         .config(f"spark.sql.catalog.{CATALOG_NAME}.cache-enabled", "false")
         .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
@@ -173,12 +173,12 @@ def demonstrate_time_travel(spark: SparkSession) -> None:
 
     # Get snapshot IDs from history
     history_df = spark.sql(
-        f"SELECT snapshot_id, committed_at FROM {FULL_TABLE_NAME}.history ORDER BY committed_at"
+        f"SELECT snapshot_id, made_current_at FROM {FULL_TABLE_NAME}.history ORDER BY made_current_at"
     )
     history_rows = history_df.collect()
     logger.info("Available snapshots:")
     for row in history_rows:
-        logger.info("  Snapshot ID: %s, Committed at: %s", row["snapshot_id"], row["committed_at"])
+        logger.info("  Snapshot ID: %s, Made current at: %s", row["snapshot_id"], row["made_current_at"])
 
     if len(history_rows) < 2:
         logger.warning("Not enough snapshots for time travel demonstration")
@@ -195,7 +195,7 @@ def demonstrate_time_travel(spark: SparkSession) -> None:
 
     # Time travel to a specific timestamp (snapshot 2, before updates)
     # Use the timestamp of the second snapshot
-    second_snapshot_ts = history_rows[1]["committed_at"]
+    second_snapshot_ts = history_rows[1]["made_current_at"]
     logger.info("=== Time Travel: Reading as of timestamp %s ===", second_snapshot_ts)
     time_travel_ts_df = spark.sql(
         f"SELECT * FROM {FULL_TABLE_NAME} TIMESTAMP AS OF '{second_snapshot_ts}'"
@@ -220,7 +220,7 @@ def demonstrate_rollback(spark: SparkSession) -> None:
 
     # Get the second snapshot ID (before updates/deletes)
     history_df = spark.sql(
-        f"SELECT snapshot_id, committed_at FROM {FULL_TABLE_NAME}.history ORDER BY committed_at"
+        f"SELECT snapshot_id, made_current_at FROM {FULL_TABLE_NAME}.history ORDER BY made_current_at"
     )
     history_rows = history_df.collect()
 
@@ -252,14 +252,17 @@ def demonstrate_rollback(spark: SparkSession) -> None:
     if len(history_rows) >= 5:
         latest_snapshot_id = history_rows[-1]["snapshot_id"]
         logger.info("Restoring to latest snapshot ID: %s", latest_snapshot_id)
-        spark.sql(
-            f"CALL {CATALOG_NAME}.system.rollback_to_snapshot('{NAMESPACE}.{TABLE_NAME}', {latest_snapshot_id})"
-        )
-        logger.info("Rollforward completed")
+        try:
+            spark.sql(
+                f"CALL {CATALOG_NAME}.system.rollback_to_snapshot('{NAMESPACE}.{TABLE_NAME}', {latest_snapshot_id})"
+            )
+            logger.info("Rollforward completed")
 
-        logger.info("Data after rollforward (should match pre-rollback state):")
-        after_restore = spark.sql(f"SELECT * FROM {FULL_TABLE_NAME}")
-        after_restore.show(truncate=False)
+            logger.info("Data after rollforward (should match pre-rollback state):")
+            after_restore = spark.sql(f"SELECT * FROM {FULL_TABLE_NAME}")
+            after_restore.show(truncate=False)
+        except Exception as exc:
+            logger.warning("Rollforward not possible (snapshot no longer ancestor): %s", exc)
 
 
 def main() -> None:

@@ -42,11 +42,11 @@ def create_spark_session() -> SparkSession:
     spark = (
         SparkSession.builder.appName("IcebergCompaction")
         .config("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkSessionCatalog")
-        .config("spark.sql.catalog.spark_catalog.type", "hive")
+        .config("spark.sql.catalog.spark_catalog.type", "hadoop")
         .config("spark.sql.catalog.spark_catalog.warehouse", "file:///tmp/iceberg_warehouse")
         .config("spark.sql.catalog.spark_catalog.cache-enabled", "false")
         .config(f"spark.sql.catalog.{CATALOG_NAME}", "org.apache.iceberg.spark.SparkCatalog")
-        .config(f"spark.sql.catalog.{CATALOG_NAME}.type", "hive")
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.type", "hadoop")
         .config(f"spark.sql.catalog.{CATALOG_NAME}.warehouse", "file:///tmp/iceberg_warehouse")
         .config(f"spark.sql.catalog.{CATALOG_NAME}.cache-enabled", "false")
         .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")

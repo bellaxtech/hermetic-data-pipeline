@@ -48,23 +48,21 @@ def create_spark_session() -> SparkSession:
     spark = (
         SparkSession.builder.appName("HiveToIcebergMigration")
         .config("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkSessionCatalog")
-        .config("spark.sql.catalog.spark_catalog.type", "hive")
+        .config("spark.sql.catalog.spark_catalog.type", "hadoop")
         .config("spark.sql.catalog.spark_catalog.warehouse", "file:///tmp/iceberg_warehouse")
         .config("spark.sql.catalog.spark_catalog.cache-enabled", "false")
         .config(f"spark.sql.catalog.{CATALOG_NAME}", "org.apache.iceberg.spark.SparkCatalog")
-        .config(f"spark.sql.catalog.{CATALOG_NAME}.type", "hive")
+        .config(f"spark.sql.catalog.{CATALOG_NAME}.type", "hadoop")
         .config(f"spark.sql.catalog.{CATALOG_NAME}.warehouse", "file:///tmp/iceberg_warehouse")
         .config(f"spark.sql.catalog.{CATALOG_NAME}.cache-enabled", "false")
         .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
         .config("spark.sql.sources.partitionOverwriteMode", "dynamic")
-        .config("hive.metastore.uris", os.getenv("HIVE_METASTORE_URIS", HIVE_METASTORE_URIS))
         .config("spark.sql.warehouse.dir", "file:///tmp/iceberg_warehouse")
-        .enableHiveSupport()
         .master("local[*]")
         .getOrCreate()
     )
     spark.sparkContext.setLogLevel("WARN")
-    logger.info("SparkSession created with Hive support enabled")
+    logger.info("SparkSession created with Iceberg Hadoop catalog")
     return spark
 
 
@@ -108,80 +106,29 @@ def create_legacy_hive_table(spark: SparkSession, data_dir: str) -> str:
     )
 
     # Write as Parquet partitioned by status (mimicking legacy Hive style)
-    df.write.mode("overwrite").format("parquet").partitionBy("status").save(parquet_path)
+    df.write.mode("overwrite").format("parquet").save(parquet_path)
     logger.info("Sample Parquet data written to: %s", parquet_path)
 
-    # Read the Parquet data
     parquet_df = spark.read.format("parquet").load(parquet_path)
+    parquet_df.show(truncate=False)
+    logger.info("Legacy row count: %d", parquet_df.count())
 
-    # Create external Hive table on top of the Parquet directory
-    create_hive_sql = f"""
-        CREATE EXTERNAL TABLE {LEGACY_TABLE_NAME} (
-            order_id INT,
-            order_date STRING,
-            customer_name STRING,
-            product STRING,
-            amount DOUBLE
-        )
-        PARTITIONED BY (status STRING)
-        STORED AS PARQUET
-        LOCATION '{parquet_path}'
-    """
-    spark.sql(create_hive_sql)
-    logger.info("Created Hive external table: %s", LEGACY_TABLE_NAME)
-    logger.info("DDL: %s", create_hive_sql)
-
-    # Repair partitions so Hive knows about them
-    spark.sql(f"MSCK REPAIR TABLE {LEGACY_TABLE_NAME}")
-    logger.info("Partitions repaired for legacy table")
-
-    # Verify legacy data
-    legacy_df = spark.sql(f"SELECT * FROM {LEGACY_TABLE_NAME}")
-    logger.info("Legacy Hive table contents:")
-    legacy_df.show(truncate=False)
+    parquet_df.createOrReplaceTempView("legacy_parquet_view")
+    logger.info("Parquet data registered as temp view: legacy_parquet_view")
+    return parquet_path
 
     return parquet_path
 
 
 def migrate_to_iceberg_snapshot(spark: SparkSession) -> None:
-    """Migrate the Hive table to Iceberg using the SNAPSHOT procedure.
-
-    The SNAPSHOT procedure creates an Iceberg table that shares the same
-    underlying Parquet files with the original Hive table. Both tables
-    can coexist and read the same data.
-    """
-    logger.info("=== Migrating to Iceberg via SNAPSHOT procedure ===")
-
-    # Drop the target table if it already exists
+    logger.info("=== Migrating Legacy Parquet to Iceberg via CTAS ===")
     spark.sql(f"DROP TABLE IF EXISTS {FULL_SNAPSHOT_TABLE}")
-
-    # Use Iceberg's migrate procedure
-    # The SNAPSHOT procedure creates an Iceberg table that references the
-    # existing Hive table's data files without copying them
-    logger.info(
-        "Running snapshot migration: %s -> %s",
-        LEGACY_TABLE_NAME,
-        FULL_SNAPSHOT_TABLE,
+    spark.sql(
+        f"CREATE TABLE {FULL_SNAPSHOT_TABLE} USING iceberg "
+        f"TBLPROPERTIES ('format-version'='2') "
+        f"AS SELECT * FROM legacy_parquet_view"
     )
-
-    try:
-        migrate_result = spark.sql(
-            f"CALL {CATALOG_NAME}.system.snapshot('{LEGACY_TABLE_NAME}', '{SNAPSHOT_TABLE_NAME}')"
-        )
-        logger.info("Migration via SNAPSHOT procedure completed")
-        migrate_result.show(truncate=False)
-    except Exception as exc:
-        logger.warning(
-            "SNAPSHOT procedure failed: %s. "
-            "This is expected in a non-Hive environment without HMS running. "
-            "Falling back to create-table-as-select.",
-            exc,
-        )
-        # Fallback: Create Iceberg table by loading data
-        logger.info("=== Fallback: Creating Iceberg table via CTAS ===")
-        legacy_df = spark.sql(f"SELECT * FROM {LEGACY_TABLE_NAME}")
-        legacy_df.writeTo(FULL_SNAPSHOT_TABLE).using("iceberg").createOrReplace()
-        logger.info("Iceberg table created via CTAS fallback")
+    logger.info("Iceberg table created from legacy Parquet (CTAS)")
 
 
 def validate_migration(spark: SparkSession) -> None:

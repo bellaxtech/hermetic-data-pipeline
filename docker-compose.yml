@@ -7,6 +7,11 @@ x-airflow-common: &airflow-common
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
     - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    - POSTGRES_HOST=postgres
+    - POSTGRES_DB=airflow
+    - POSTGRES_USER=airflow
+    - POSTGRES_PASSWORD=airflow
+    - SHARED_STORAGE_PATH=/opt/airflow/shared
   volumes:
     - ./dags:/opt/airflow/dags
     - ./airflow-logs:/opt/airflow/logs
@@ -20,7 +25,7 @@ x-airflow-common: &airflow-common
 services:
   # 1. 메타데이터 및 메인 저장소 (PostgreSQL)
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_USER=airflow
       - POSTGRES_PASSWORD=airflow
@@ -56,10 +61,10 @@ services:
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-    _AIRFLOW_DB_UPGRADE: "true"
-    _AIRFLOW_WWW_USER_CREATE: "true"
-    _AIRFLOW_WWW_USER_USERNAME: airflow
-    _AIRFLOW_WWW_USER_PASSWORD: airflow
+      - _AIRFLOW_DB_UPGRADE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=airflow
+      - _AIRFLOW_WWW_USER_PASSWORD=airflow
 
   # 5. Apache Spark Master (연산 컨트롤러: UI Port 8081)
   spark-master:
@@ -91,7 +96,7 @@ services:
 
   # 7. Hive Metastore (Iceberg 메타데이터 관리 포트: 9083)
   hive-metastore:
-    image: rcarmo/hive-metastore:3.1.2
+    image: bitsondatadev/hive-metastore:latest
     container_name: hive-metastore
     ports:
       - "9083:9083"
