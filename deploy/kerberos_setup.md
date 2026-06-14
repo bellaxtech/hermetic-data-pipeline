@@ -50,7 +50,7 @@ Before configuring Kerberos, ensure you have:
 | Component | Requirement |
 |-----------|-------------|
 | **KDC**    | Accessible Kerberos Key Distribution Center (e.g., MIT Kerberos, Active Directory) |
-| **Realm**  | Kerberos realm name (e.g., `CORP.EXAMPLE.COM`) |
+| **Realm**  | Kerberos realm name (e.g., `EXAMPLE.COM`) |
 | **Principal** | Service or user principal (e.g., `hive/hostname@REALM`) |
 | **Keytab**  | Keytab file containing encrypted principal credentials |
 | **Network** | Connectivity to KDC on ports 88 (UDP/TCP) and 749 (TCP admin) |
@@ -64,7 +64,7 @@ Before configuring Kerberos, ensure you have:
 | Term | Description |
 |------|-------------|
 | **Principal** | Unique identity in Kerberos: `primary/instance@REALM` |
-| **Realm** | Kerberos domain namespace (uppercase, e.g., `CORP.EXAMPLE.COM`) |
+| **Realm** | Kerberos domain namespace (uppercase, e.g., `EXAMPLE.COM`) |
 | **TGT** | Ticket-Granting Ticket — initial authentication token |
 | **Keytab** | File containing encrypted principal credentials (passwordless auth) |
 | **kinit** | Command to obtain and cache TGT |
@@ -112,7 +112,7 @@ enterprise configuration:
 
 ```ini
 [libdefaults]
-    default_realm = CORP.EXAMPLE.COM
+    default_realm = EXAMPLE.COM
     dns_lookup_realm = false
     dns_lookup_kdc = true
     ticket_lifetime = 24h
@@ -125,7 +125,7 @@ enterprise configuration:
     # default_ccache_name = FILE:/tmp/krb5cc_%{uid}
 
 [realms]
-    CORP.EXAMPLE.COM = {
+    EXAMPLE.COM = {
         kdc = kdc01.corp.example.com
         kdc = kdc02.corp.example.com
         admin_server = kdc01.corp.example.com
@@ -133,8 +133,8 @@ enterprise configuration:
     }
 
 [domain_realm]
-    .corp.example.com = CORP.EXAMPLE.COM
-    corp.example.com = CORP.EXAMPLE.COM
+    .corp.example.com = EXAMPLE.COM
+    corp.example.com = EXAMPLE.COM
 
 [logging]
     kdc = FILE:/var/log/krb5kdc.log
@@ -155,7 +155,7 @@ Manual authentication using a password:
 
 ```bash
 # kinit with username@REALM
-kinit bella@CORP.EXAMPLE.COM
+kinit bella@EXAMPLE.COM
 # Password: ********
 
 # Verify ticket
@@ -163,10 +163,10 @@ klist
 
 # Output example:
 # Ticket cache: FILE:/tmp/krb5cc_501
-# Default principal: bella@CORP.EXAMPLE.COM
+# Default principal: bella@EXAMPLE.COM
 #
 # Valid starting     Expires            Service principal
-# 01/15/24 09:00:00  01/16/24 09:00:00  krbtgt/CORP.EXAMPLE.COM@CORP.EXAMPLE.COM
+# 01/15/24 09:00:00  01/16/24 09:00:00  krbtgt/EXAMPLE.COM@EXAMPLE.COM
 #         renew until 01/22/24 09:00:00
 ```
 
@@ -181,27 +181,27 @@ Ask your Kerberos admin to create a keytab, or use `kadmin`:
 
 ```bash
 # Using kadmin.local (on KDC)
-sudo kadmin.local -q "addprinc -randkey bella/airflow@CORP.EXAMPLE.COM"
-sudo kadmin.local -q "ktadd -k /etc/security/airflow.keytab bella/airflow@CORP.EXAMPLE.COM"
+sudo kadmin.local -q "addprinc -randkey bella/airflow@EXAMPLE.COM"
+sudo kadmin.local -q "ktadd -k /etc/security/airflow.keytab bella/airflow@EXAMPLE.COM"
 
 # Using remote kadmin
-kadmin -p admin/admin@CORP.EXAMPLE.COM
-kadmin:  addprinc -randkey pipeline-svc@CORP.EXAMPLE.COM
-kadmin:  ktadd -k /etc/security/pipeline.keytab pipeline-svc@CORP.EXAMPLE.COM
+kadmin -p admin/admin@EXAMPLE.COM
+kadmin:  addprinc -randkey pipeline-svc@EXAMPLE.COM
+kadmin:  ktadd -k /etc/security/pipeline.keytab pipeline-svc@EXAMPLE.COM
 ```
 
 #### Authenticating with a Keytab
 
 ```bash
 # One-time login
-kinit -kt /etc/security/pipeline.keytab pipeline-svc@CORP.EXAMPLE.COM
+kinit -kt /etc/security/pipeline.keytab pipeline-svc@EXAMPLE.COM
 
 # Verify
 klist
 
 # Automate in cron/systemd — check before using
 if ! klist -s; then
-    kinit -kt /etc/security/pipeline.keytab pipeline-svc@CORP.EXAMPLE.COM
+    kinit -kt /etc/security/pipeline.keytab pipeline-svc@EXAMPLE.COM
 fi
 ```
 
@@ -235,7 +235,7 @@ Core Hadoop configuration for Kerberos authentication:
 <configuration>
     <property>
         <name>dfs.namenode.kerberos.principal</name>
-        <value>nn/_HOST@CORP.EXAMPLE.COM</value>
+        <value>nn/_HOST@EXAMPLE.COM</value>
     </property>
     <property>
         <name>dfs.namenode.keytab.file</name>
@@ -243,7 +243,7 @@ Core Hadoop configuration for Kerberos authentication:
     </property>
     <property>
         <name>dfs.datanode.kerberos.principal</name>
-        <value>dn/_HOST@CORP.EXAMPLE.COM</value>
+        <value>dn/_HOST@EXAMPLE.COM</value>
     </property>
     <property>
         <name>dfs.datanode.keytab.file</name>
@@ -251,7 +251,7 @@ Core Hadoop configuration for Kerberos authentication:
     </property>
     <property>
         <name>dfs.web.authentication.kerberos.principal</name>
-        <value>HTTP/_HOST@CORP.EXAMPLE.COM</value>
+        <value>HTTP/_HOST@EXAMPLE.COM</value>
     </property>
 </configuration>
 ```
@@ -263,7 +263,7 @@ Core Hadoop configuration for Kerberos authentication:
 <configuration>
     <property>
         <name>hive.metastore.kerberos.principal</name>
-        <value>hive/_HOST@CORP.EXAMPLE.COM</value>
+        <value>hive/_HOST@EXAMPLE.COM</value>
     </property>
     <property>
         <name>hive.metastore.kerberos.keytab.file</name>
@@ -295,10 +295,10 @@ spark = (
     .config("hive.metastore.sasl.enabled", "true")
     .config(
         "hive.metastore.kerberos.principal",
-        "hive/_HOST@CORP.EXAMPLE.COM",
+        "hive/_HOST@EXAMPLE.COM",
     )
     # Spark security
-    .config("spark.yarn.principal", "pipeline-svc@CORP.EXAMPLE.COM")
+    .config("spark.yarn.principal", "pipeline-svc@EXAMPLE.COM")
     .config("spark.yarn.keytab", "/etc/security/pipeline.keytab")
     .config("spark.kerberos.access.hadoopFileSystems", "hdfs://namenode.corp.example.com:8020")
     .config("spark.hadoop.hadoop.security.authentication", "kerberos")
@@ -313,10 +313,10 @@ spark = (
 spark-submit \
     --master yarn \
     --deploy-mode cluster \
-    --principal pipeline-svc@CORP.EXAMPLE.COM \
+    --principal pipeline-svc@EXAMPLE.COM \
     --keytab /etc/security/pipeline.keytab \
     --conf spark.yarn.access.hadoopFileSystems=hdfs://namenode.corp.example.com:8020 \
-    --conf spark.sql.hive.metastore.kerberos.principal=hive/_HOST@CORP.EXAMPLE.COM \
+    --conf spark.sql.hive.metastore.kerberos.principal=hive/_HOST@EXAMPLE.COM \
     --jars iceberg-spark-runtime-3.4_2.12-1.3.1.jar \
     spark/jobs/iceberg_schema_evolution.py
 ```
@@ -328,7 +328,7 @@ For long-running Spark Streaming jobs, enable keytab renewal:
 ```bash
 spark-submit \
     --conf spark.yarn.keytab=/etc/security/pipeline.keytab \
-    --conf spark.yarn.principal=pipeline-svc@CORP.EXAMPLE.COM \
+    --conf spark.yarn.principal=pipeline-svc@EXAMPLE.COM \
     --conf spark.kerberos.renewal.interval=86400 \
     --conf spark.kerberos.ticket.renewal.retries=3
 ```
@@ -353,7 +353,7 @@ services:
       - /etc/security/airflow.keytab:/etc/security/airflow.keytab:ro
     command: >
       sh -c "
-        kinit -kt /etc/security/airflow.keytab airflow-svc@CORP.EXAMPLE.COM &&
+        kinit -kt /etc/security/airflow.keytab airflow-svc@EXAMPLE.COM &&
         airflow celery worker
       "
 ```
@@ -370,7 +370,7 @@ In Airflow UI or `airflow_connections.json`:
     "port": 9083,
     "extra": {
         "auth": "kerberos",
-        "kerberos_principal": "hive/_HOST@CORP.EXAMPLE.COM",
+        "kerberos_principal": "hive/_HOST@EXAMPLE.COM",
         "kerberos_keytab": "/etc/security/hive.keytab"
     }
 }
@@ -402,7 +402,7 @@ klist
 klist -5 -e
 
 # Test authentication
-kinit -V pipeline-svc@CORP.EXAMPLE.COM
+kinit -V pipeline-svc@EXAMPLE.COM
 
 # Test with keytab
 kinit -kt /etc/security/pipeline.keytab -V
@@ -414,7 +414,7 @@ kdestroy
 klist -kt /etc/security/pipeline.keytab
 
 # Test Hive connectivity
-beeline -u "jdbc:hive2://hive-server:10000/default;principal=hive/_HOST@CORP.EXAMPLE.COM"
+beeline -u "jdbc:hive2://hive-server:10000/default;principal=hive/_HOST@EXAMPLE.COM"
 
 # Check clock skew
 chronyc tracking  # or: ntpq -p

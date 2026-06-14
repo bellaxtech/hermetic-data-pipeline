@@ -50,7 +50,7 @@ class SSLProxyConfig:
     """SSL and proxy configuration for corporate environments.
 
     Attributes:
-        proxy_url: HTTP proxy URL (e.g., http://proxy.corp.example.com:8080).
+        proxy_url: HTTP proxy URL (e.g., http://proxy.example.com:8080).
         https_proxy: HTTPS proxy URL (defaults to proxy_url if not set).
         no_proxy: Comma-separated hosts to bypass proxy.
         verify_ssl: Whether to verify SSL certificates.

@@ -8,6 +8,7 @@ for local development and production deployment.
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import ClassVar
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
 
     # ── Postgres / pgvector ──────────────────────────────────────────────
     postgres_dsn: PostgresDsn = Field(
-        default=PostgresDsn("postgresql://postgres:postgres@localhost:5432/hermetic"),
+        default=os.getenv("POSTGRES_DSN", "postgresql://postgres@localhost:5432/hermetic"),
         description="PostgreSQL connection string (used by asyncpg)",
     )
     postgres_pool_min_size: int = Field(

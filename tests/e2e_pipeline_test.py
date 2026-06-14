@@ -318,7 +318,7 @@ class TestDeploymentScripts:
         config = SSLProxyConfig(
             proxy_url="http://proxy.corp:8080",
             https_proxy="http://proxy.corp:8080",
-            no_proxy="localhost,127.0.0.1,.corp.example.com",
+            no_proxy="localhost,127.0.0.1,.example.com",
             verify_ssl=False,
         )
 

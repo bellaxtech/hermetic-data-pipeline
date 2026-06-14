@@ -41,9 +41,8 @@ logger = logging.getLogger(__name__)
 _DEFAULT_ARGS = {
     "owner": "data-engineering",
     "depends_on_past": False,
-    "email_on_failure": True,
+    "email_on_failure": False,
     "email_on_retry": False,
-    "email": ["data-engineering@example.com"],
     "retries": 2,
     "retry_delay": timedelta(minutes=5),
 }
@@ -54,7 +53,7 @@ POSTGRES_CONFIG = {
     "port": int(os.getenv("POSTGRES_PORT", "5432")),
     "db": os.getenv("POSTGRES_DB", "source_db"),
     "user": os.getenv("POSTGRES_USER", "postgres"),
-    "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
+    "password": os.getenv("POSTGRES_PASSWORD", ""),
 }
 
 SHARED_STORAGE_PATH = Path(os.getenv("SHARED_STORAGE_PATH", "/data/landing"))

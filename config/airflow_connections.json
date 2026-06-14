@@ -16,7 +16,7 @@
         {
             "conn_id": "postgres_source",
             "conn_type": "postgres",
-            "host": "postgres-primary.corp.example.com",
+            "host": "postgres-primary.example.com",
             "port": 5432,
             "schema": "source_db",
             "login": "pipeline_user",
@@ -30,11 +30,11 @@
         {
             "conn_id": "hive_metastore_default",
             "conn_type": "hive_metastore",
-            "host": "hive-metastore.corp.example.com",
+            "host": "hive-metastore.example.com",
             "port": 9083,
             "extra": {
                 "auth": "kerberos",
-                "kerberos_principal": "hive/_HOST@CORP.EXAMPLE.COM",
+                "kerberos_principal": "hive/_HOST@EXAMPLE.COM",
                 "kerberos_keytab": "/etc/security/hive.keytab"
             }
         },
@@ -45,14 +45,14 @@
                 "aws_access_key_id": "${AWS_ACCESS_KEY_ID}",
                 "aws_secret_access_key": "${AWS_SECRET_ACCESS_KEY}",
                 "region_name": "us-east-1",
-                "endpoint_url": "https://s3.corp.example.com",
+                "endpoint_url": "https://s3.example.com",
                 "verify": false
             }
         },
         {
             "conn_id": "http_internal_api",
             "conn_type": "http",
-            "host": "https://api.internal.corp.example.com",
+            "host": "https://api.internal.example.com",
             "port": 443,
             "extra": {
                 "timeout": 30,
@@ -78,7 +78,7 @@
         {
             "conn_id": "redis_result_backend",
             "conn_type": "redis",
-            "host": "redis-cluster.corp.example.com",
+            "host": "redis-cluster.example.com",
             "port": 6379,
             "extra": {
                 "db": 0,
@@ -90,8 +90,8 @@
             "conn_id": "minio_s3_compat",
             "conn_type": "aws",
             "extra": {
-                "aws_access_key_id": "minioadmin",
-                "aws_secret_access_key": "minioadmin",
+                "aws_access_key_id": "${MINIO_ACCESS_KEY}",
+                "aws_secret_access_key": "${MINIO_SECRET_KEY}",
                 "endpoint_url": "http://minio:9000",
                 "region_name": "us-east-1",
                 "verify": false

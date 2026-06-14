@@ -17,7 +17,7 @@ Usage:
     from ingestion.async_collector import AsyncDataCollector, CollectorConfig
 
     config = CollectorConfig(
-        base_url="https://api.internal.example.com",
+        base_url="https://api.example.com",
         endpoint="/v1/orders",
         api_key="sk-...",
         page_size=100,
@@ -61,7 +61,7 @@ class CollectorConfig:
     """Configuration for the async data collector.
 
     Attributes:
-        base_url: Base URL for the API (e.g., https://api.internal.example.com).
+        base_url: Base URL for the API (e.g., https://api.example.com).
         endpoint: API endpoint path (e.g., /v1/orders).
         api_key: API key for authentication.
         page_size: Number of items per page (default: 100).

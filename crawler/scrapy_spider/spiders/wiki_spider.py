@@ -75,7 +75,7 @@ class WikiSpider(scrapy.Spider):
         )
 
         if not self.start_urls:
-            self.start_urls = ["http://wiki.internal.example.com/"]
+            self.start_urls = ["http://wiki.example.com/"]
 
     def start_requests(self):
         for url in self.start_urls:
