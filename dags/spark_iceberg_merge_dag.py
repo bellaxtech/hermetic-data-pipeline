@@ -126,8 +126,7 @@ dag = DAG(
 spark_merge_job = SparkSubmitOperator(
     task_id="run_iceberg_merge",
     application=SPARK_JOB_PATH,
-    name="IcebergMergeUpsert",
-    conn_id="spark_default",  # Airflow connection for Spark
+    conn_id="spark_default",
     conf={
         "spark.sql.extensions": "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
         "spark.sql.catalog.iceberg_catalog": "org.apache.iceberg.spark.SparkCatalog",
@@ -137,18 +136,14 @@ spark_merge_job = SparkSubmitOperator(
         "spark.sql.sources.partitionOverwriteMode": "dynamic",
         "spark.sql.shuffle.partitions": "16",
         "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+        "spark.driver.memory": "4g",
+        "spark.executor.memory": "8g",
+        "spark.executor.instances": "4",
+        "spark.executor.cores": "2",
     },
     jars=os.getenv("SPARK_ICEBERG_JARS", ""),
     packages=os.getenv("SPARK_ICEBERG_PACKAGES", ICEBERG_PACKAGES),
-    principal=os.getenv("SPARK_PRINCIPAL", ""),
-    keytab=os.getenv("SPARK_KEYTAB", ""),
-    driver_memory="4g",
-    executor_memory="8g",
-    num_executors=4,
-    executor_cores=2,
     verbose=True,
-    on_failure_callback=_send_slack_notification,
-    execution_timeout=timedelta(hours=2),
     dag=dag,
 )
 
@@ -177,4 +172,4 @@ def validate_merge_result(**context: Any) -> None:
 # ---------------------------------------------------------------------------
 # Pipeline
 # ---------------------------------------------------------------------------
-validate_merge_result(spark_merge_job)
+spark_merge_job >> validate_merge_result()
